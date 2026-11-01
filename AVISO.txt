@@ -1,0 +1,2 @@
+é necessario descompactar o arquivo "acidentes2023_todas_causas_tipos.zip" e adicionar o csv nesta mesma pasta, para o codigo funcionar.
+e também é necessario baixar o requiriments.txt utilizando o comando "pip install -r requirements.txt"
