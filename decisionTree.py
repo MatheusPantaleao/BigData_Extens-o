@@ -16,8 +16,8 @@ from sklearn.metrics import (
     f1_score
 )
 
-# 1. CARREGAMENTO DOS DADOS
-print("Carregando o arquivo bruto...")
+# carregando dados
+print("Carregando o arquivo bruto")
 df = pd.read_csv('acidentes2023_todas_causas_tipos.csv', sep=';', encoding='latin1')
 df.columns = df.columns.str.strip()
 
@@ -30,10 +30,8 @@ colunas_para_verificar = [
     'uso_solo', 'tipo_envolvido', 'sexo'
 ]
 
-# 2. VISUALIZAÇÃO DOS DADOS CRUS
-print("="*50)
-print(" ***** ANTES DO PROCESSAMENTO (DADOS CRUS) ***** ")
-print("="*50)
+# dados crus
+print(" ***** ANTES DO PROCESSAMENTO DADOS CRUS ***** ")
 
 for col in colunas_para_verificar:
     if col in df.columns:
@@ -43,9 +41,6 @@ for col in colunas_para_verificar:
         print(f"-> TOTAL DE CATEGORIAS DIFERENTES: {len(contagem)}")
 
 
-# 3. PRÉ-PROCESSAMENTO E LIMPEZA DOS DADOS
-print("\nIniciando a faxina dos dados...\n")
-
 df = df.rename(columns={
     'condicao_metereologic': 'condicao_meteorologica',
     'condicao_metereologica': 'condicao_meteorologica'
@@ -54,12 +49,12 @@ df = df.rename(columns={
 colunas_vitimas = ['ilesos', 'feridos_leves', 'feridos_graves', 'mortos']
 colunas_analise = ['idade'] + colunas_para_verificar
 
-# 3.1 Padronizar textos (letras minúsculas e sem espaços)
+# padronizar textos 
 for col in colunas_para_verificar:
     if col in df.columns:
         df[col] = df[col].astype(str).str.strip().str.lower()
 
-# 3.2 Otimização de colunas com muitas variaveis, Top 10 e outros
+# Otimização de colunas com muitas variaveis, Top 10 e outros
 if 'tracado_via' in df.columns:
     top_tracados = df['tracado_via'].value_counts().nlargest(10).index
     df['tracado_via'] = np.where(df['tracado_via'].isin(top_tracados), df['tracado_via'], 'outros')
@@ -68,11 +63,11 @@ if 'causa_acidente' in df.columns:
     top_causas = df['causa_acidente'].value_counts().nlargest(10).index
     df['causa_acidente'] = np.where(df['causa_acidente'].isin(top_causas), df['causa_acidente'], 'outros')       
 
-# 3.3 Traduzindo o padrão da PRF para Urbano e Rural
+# padronizando urbano e rural
 if 'uso_solo' in df.columns:
     df['uso_solo'] = df['uso_solo'].replace({'sim': 'urbano', 'não': 'rural', 'nao': 'rural'})
 
-# 3.4 Apagando lixo e nulos
+# apagando lixos e nulos
 valores_invalidos = [
     '', ' ', 'nan', 'null', 'none', '(null)', 'ignorado', 
     'não informado', 'nao informado', 'sem informação', 'sem informacao'
@@ -98,7 +93,7 @@ if 'idade' in df_limpo.columns:
 for col in colunas_vitimas_existentes:
     df_limpo[col] = df_limpo[col].astype(int)
 
-# 3.5 Criando a Variável Alvo
+# variavel alvo
 df_limpo = df_limpo[
     (df_limpo['ilesos'] > 0) | (df_limpo['feridos_leves'] > 0) | 
     (df_limpo['feridos_graves'] > 0) | (df_limpo['mortos'] > 0)
@@ -108,10 +103,8 @@ condicoes_bin = [(df_limpo['mortos'] > 0) | (df_limpo['feridos_graves'] > 0)]
 df_limpo['gravidade_binaria'] = np.select(condicoes_bin, ['Grave/Fatal'], default='Leve/Ileso')
 
 
-# 4. O "DEPOIS" - VISUALIZAÇÃO DOS DADOS LIMPOS
-print("="*50)
-print(" ***** DEPOIS DO PROCESSAMENTO (DADOS LIMPOS) ***** ")
-print("="*50)
+# dados limpos
+print(" ***** DADOS LIMPOS ***** ")
 
 for col in colunas_para_verificar:
     if col in df_limpo.columns:
@@ -122,13 +115,13 @@ for col in colunas_para_verificar:
 
 linhas_finais = len(df_limpo)
 print(f"\nTotal de registros limpos para análise: {linhas_finais}")
-print(f"Registros removidos (nulos/inválidos): {linhas_iniciais - linhas_finais}\n")
+print(f"Registros removidos nulos/inválidos: {linhas_iniciais - linhas_finais}\n")
 
-# 4.1 GRÁFICOS
+# graficos
 sns.set_theme(style="whitegrid")
 ordem_dias = ['segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado', 'domingo']
 
-print("\nGerando Gráficos Exploratórios... (Feche as janelas para continuar)")
+print("\nGerando Gráficos")
 
 for coluna in colunas_para_verificar:
     if coluna in df_limpo.columns:
@@ -179,7 +172,7 @@ plt.tight_layout()
 plt.show(block=True)
 
 
-# 5. TRAVA DE SEGURANÇA e PREPARAÇÃO PARA MACHINE LEARNING
+# machine learning
 print("="*50)
 resposta = input("Deseja prosseguir para o treinamento da Árvore de Decisão? (s/n): ")
 
@@ -189,17 +182,15 @@ if resposta.lower() != 's':
 
 colunas_para_ml = colunas_existentes
 
-print("\nTraduzindo textos para números (One-Hot Encoding)...")
+print("\ngerando variaveis one hot encoding")
 X = pd.get_dummies(df_limpo[colunas_para_ml], drop_first=True, dtype=int)
 y = df_limpo['gravidade_binaria']
 ordem_classes = ['Leve/Ileso', 'Grave/Fatal']
 
 
-# 
-# 6. BUSCA DE HIPERPARÂMETROS e K-FOLD
-# 
-print("\nIniciando a Busca pelos Melhores Hiperparâmetros (Grid Search)...")
-print("A IA vai testar 90 combinações diferentes. Pode demorar alguns minutos!")
+
+# busca de hiperparametros e k-fold
+print("\nBusca pelos melhores Hiperparametros")
 
 param_grid = {
     'criterion': ['gini', 'entropy'],
@@ -237,7 +228,7 @@ print(f"Acurácia: {acc * 100:.2f}%")
 print(f"MCC: {mcc:.4f}")
 
 
-# 7. RELATÓRIO FINAL E GRÁFICOS
+# relatorio final e graficos
 print(f"\n=== RELATÓRIO DE CLASSIFICAÇÃO ===")
 print(classification_report(y, y_pred_kfold, labels=ordem_classes))
 
@@ -250,7 +241,6 @@ plt.grid(False)
 plt.tight_layout()
 plt.show()
 
-print("Extraindo a inteligência da arvore para o desenho...")
 arvore_otimizada.fit(X, y)
 
 plt.figure(figsize=(20, 10))
@@ -265,3 +255,5 @@ plot_tree(
 )
 plt.title("arvore de decisão otimizada visão Resumida")
 plt.show()
+
+print("codigo encerrado")
