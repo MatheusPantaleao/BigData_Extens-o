@@ -45,7 +45,11 @@ colunas_texto = [
     'condicao_meteorologica',
     'fase_dia',
     'causa_acidente',
-    'tipo_acidente'
+    'tipo_acidente',
+    'tracado_via',
+    'uso_solo',
+    'tipo_envolvido', 
+    'sexo'
 ]
 
 colunas_vitimas = [
@@ -63,6 +67,9 @@ for col in colunas_texto:
     if col in df.columns:
         df[col] = df[col].astype(str).str.strip().str.lower()
 
+# Traduzindo o padrão da PRF para Urbano e Rural (FORA DO LAÇO FOR)
+if 'uso_solo' in df.columns:
+    df['uso_solo'] = df['uso_solo'].replace({'sim': 'urbano', 'não': 'rural', 'nao': 'rural'})
 
 # 2.3 Substituir valores inválidos por NaN
 valores_invalidos = [
@@ -354,7 +361,7 @@ search = RandomizedSearchCV(
     cv=3,
     scoring='accuracy',
     random_state=42,
-    n_jobs=-1
+    n_jobs=2
 )
 
 search.fit(X_train, y_train)
